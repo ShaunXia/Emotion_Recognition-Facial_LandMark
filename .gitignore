@@ -49,3 +49,10 @@ predict_img
 male
 test_img
 train_img
+*.*
+!.gitattributes
+!.gitignore
+!ERT_Test.cpp
+!LBFModel.cpp
+!LBFModel.h
+!README.md

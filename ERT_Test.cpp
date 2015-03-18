@@ -815,7 +815,7 @@ void getImgList(string path,vector<string> &imglist)
 }
 
 int main( int argc, char** argv ){ 
-
+	
 	string train_path = "male";
 	string test_path = "test_img";
 	vector<string> trainlist,testlist;
@@ -840,7 +840,7 @@ int main( int argc, char** argv ){
 	}
 
 	cout<<"Now Training "<<endl;
-	int use_model_file=1;
+	int use_model_file=1; 
 
 	CvSVM SVM;
 	if (!use_model_file)
@@ -872,5 +872,6 @@ int main( int argc, char** argv ){
 		cout<<i<<" : type: "<<predict_labels.at<float>(i,0)<<" Predict: "<<SVM.predict(img_test)<<endl;
 	}
 	
+
 	return 0;
 }
