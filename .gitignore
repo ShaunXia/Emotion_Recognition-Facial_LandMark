@@ -45,3 +45,15 @@ sleepy
 training_img
 predict_img
 .apdisk
+
+male
+test_img
+train_img
+*.*
+*
+!.gitattributes
+!.gitignore
+!ERT_Test.cpp
+!LBFModel.cpp
+!LBFModel.h
+!README.md
