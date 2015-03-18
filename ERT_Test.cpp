@@ -18,7 +18,6 @@ using namespace cv;
 
 
 #define OPEN_TEMPLATE_FILE_FAIL 0
-#define SAMPLE_NUM 45
 #define DATA_NUM 622
 
 #define POINT_WIDTH 480
@@ -49,40 +48,11 @@ void findPointsBorder(vector<Point> &points,Point &ul,Point &dr)
 	dr.x=max_point_x;
 	dr.y=max_point_y;
 }
-int getTrainFeature(Mat &training_mat,Mat &labels)
+int getTrainFeature(Mat &training_mat,Mat &labels,vector<string> img_list)
 {
-
-	string img_list[SAMPLE_NUM];
-	int files_count=0;
 	int max_point_x,min_point_x,max_point_y,min_point_y;
 
-	// get image list
-	string img_path="training_img";
-	string exten = "*";
-	string fileFolder = img_path+"\\*."+exten;
-	char fileName[2000];
-	struct  _finddata_t fileInfo;
-	long findResult = _findfirst(fileFolder.c_str(),&fileInfo);
-	if (findResult == -1)
-	{
-		_findclose(findResult);
-		return -1;
-	}
-
-	do
-	{
-		sprintf(fileName,"%s\\%s",img_path.c_str(),fileInfo.name);
-		if (fileInfo.attrib==_A_ARCH)
-		{
-			img_list[files_count++]=fileName;
-		}
-
-	}while (!_findnext(findResult,&fileInfo));
-	_findclose(findResult); 
-
-
-
-	for (int i = 0; i < SAMPLE_NUM; i++)
+	for (int i = 0; i < img_list.size(); i++)
 	{
 		if (img_list[i].find("happy")!=string::npos)
 		{
@@ -114,7 +84,7 @@ int getTrainFeature(Mat &training_mat,Mat &labels)
 	Mat landMark_mouth(300,300,CV_8UC3,Scalar(0,0,0));
 	Mat landMark_nose(300,300,CV_8UC3,Scalar(0,0,0));
 
-	for (int k = 0; k < SAMPLE_NUM; k++)
+	for (int k = 0; k < img_list.size(); k++)
 	{
 		fixed_point.clear();
 		Mat frame=imread(img_list[k]);
@@ -232,9 +202,6 @@ int getTrainFeature(Mat &training_mat,Mat &labels)
 				imshow("landMark_face_fixed", landMark_face_fixed);
 			}
 
-
-			double brow_scale;
-
 			point_eyebrow.clear();
 			point_leye.clear();
 			point_reye.clear();
@@ -245,8 +212,6 @@ int getTrainFeature(Mat &training_mat,Mat &labels)
 			//eyebrow
 			for (int j = 17; j < 27; j++)
 			{
-				//point_eyebrow[j-17].x=fixed_point[j].x;
-				//point_eyebrow[j-17].y=fixed_point[j].y;
 				point_eyebrow.push_back(fixed_point[j]);
 
 			}
@@ -254,32 +219,24 @@ int getTrainFeature(Mat &training_mat,Mat &labels)
 			//Left eye
 			for (int j = 36; j < 42; j++)
 			{
-				//point_leye[j-36].x=fixed_point[j].x;
-				//point_leye[j-36].y=fixed_point[j].y;
 				point_leye.push_back(fixed_point[j]);
 			}
 
 			//right eye
 			for (int j = 42; j < 48; j++)
 			{
-				//point_reye[j-42].x=fixed_point[j].x;
-				//point_reye[j-42].y=fixed_point[j].y;
 				point_reye.push_back(fixed_point[j]);
 			}
 
 			// mouth
 			for (int j = 48; j < parts.size(); j++)
 			{
-				//point_mouth[j-48].x=fixed_point[j].x;
-				//point_mouth[j-48].y=fixed_point[j].y;
 				point_mouth.push_back(fixed_point[j]);
 			}
 
 			//nose
 			for (int j = 31; j < 35; j++)
 			{
-				//point_nose[j-31].x=fixed_point[j].x;
-				//point_nose[j-31].y=fixed_point[j].y;
 				point_nose.push_back(fixed_point[j]);
 			}
 
@@ -471,8 +428,6 @@ int getTrainFeature(Mat &training_mat,Mat &labels)
 				currentDim++;
 			}
 
-			cout<<currentDim<<endl;
-
 			rectangle(frame, faces[i], Scalar( 255, 0, 0), 2,7, 0);
 
 		}
@@ -489,38 +444,14 @@ int getTrainFeature(Mat &training_mat,Mat &labels)
 
 }
 
-int getPredictFeature(Mat &training_mat,Mat &labels,int &predict_count)
+int getPredictFeature(Mat &training_mat,Mat &labels,vector<string> &img_list)
 {
 
-	string img_list[100];
+	
+	
 	int max_point_x,min_point_x,max_point_y,min_point_y;
 
-	// get image list
-	string img_path="predict_img";
-	string exten = "*";
-	string fileFolder = img_path+"\\*."+exten;
-	char fileName[2000];
-	struct  _finddata_t fileInfo;
-	long findResult = _findfirst(fileFolder.c_str(),&fileInfo);
-	if (findResult == -1)
-	{
-		_findclose(findResult);
-		return -1;
-	}
-	int count=0;
-	do
-	{
-		sprintf(fileName,"%s\\%s",img_path.c_str(),fileInfo.name);
-		if (fileInfo.attrib==_A_ARCH)
-		{
-			img_list[count++]=fileName;
-		}
-
-	}while (!_findnext(findResult,&fileInfo));
-	_findclose(findResult); 
-
-	predict_count=count;
-	for (int i = 0; i < count; i++)
+	for (int i = 0; i < img_list.size(); i++)
 	{
 		if (img_list[i].find("happy")!=string::npos)
 		{
@@ -544,13 +475,7 @@ int getPredictFeature(Mat &training_mat,Mat &labels,int &predict_count)
 	vector<Point> point_mouth;
 	vector<Point> point_nose;
 
-	Mat landMark_brow(300,300,CV_8UC3,Scalar(0,0,0));
-	Mat landMark_leye(300,300,CV_8UC3,Scalar(0,0,0));
-	Mat landMark_reye(300,300,CV_8UC3,Scalar(0,0,0));
-	Mat landMark_mouth(300,300,CV_8UC3,Scalar(0,0,0));
-	Mat landMark_nose(300,300,CV_8UC3,Scalar(0,0,0));
-
-	for (int k = 0; k < predict_count; k++)
+	for (int k = 0; k < img_list.size(); k++)
 	{
 		fixed_point.clear();
 		Mat frame=imread(img_list[k]);
@@ -669,8 +594,6 @@ int getPredictFeature(Mat &training_mat,Mat &labels,int &predict_count)
 			}
 
 
-			double brow_scale;
-
 			point_eyebrow.clear();
 			point_leye.clear();
 			point_reye.clear();
@@ -681,41 +604,30 @@ int getPredictFeature(Mat &training_mat,Mat &labels,int &predict_count)
 			//eyebrow
 			for (int j = 17; j < 27; j++)
 			{
-				//point_eyebrow[j-17].x=fixed_point[j].x;
-				//point_eyebrow[j-17].y=fixed_point[j].y;
 				point_eyebrow.push_back(fixed_point[j]);
-
 			}
 
 			//Left eye
 			for (int j = 36; j < 42; j++)
 			{
-				//point_leye[j-36].x=fixed_point[j].x;
-				//point_leye[j-36].y=fixed_point[j].y;
 				point_leye.push_back(fixed_point[j]);
 			}
 
 			//right eye
 			for (int j = 42; j < 48; j++)
 			{
-				//point_reye[j-42].x=fixed_point[j].x;
-				//point_reye[j-42].y=fixed_point[j].y;
 				point_reye.push_back(fixed_point[j]);
 			}
 
 			// mouth
 			for (int j = 48; j < parts.size(); j++)
 			{
-				//point_mouth[j-48].x=fixed_point[j].x;
-				//point_mouth[j-48].y=fixed_point[j].y;
 				point_mouth.push_back(fixed_point[j]);
 			}
 
 			//nose
 			for (int j = 31; j < 35; j++)
 			{
-				//point_nose[j-31].x=fixed_point[j].x;
-				//point_nose[j-31].y=fixed_point[j].y;
 				point_nose.push_back(fixed_point[j]);
 			}
 
@@ -725,14 +637,6 @@ int getPredictFeature(Mat &training_mat,Mat &labels,int &predict_count)
 			findPointsBorder(point_leye,xleye,yleye);
 			findPointsBorder(point_mouth,xmouth,ymouth);
 			findPointsBorder(point_nose,xnose,ynose);
-
-			/*Mat landMark_brow(ybrow.y-xbrow.y,ybrow.x-xbrow.x,CV_8UC3,Scalar(0,0,0));
-			Mat landMark_leye(yleye.y-xleye.y,200,CV_8UC3,Scalar(0,0,0));
-			Mat landMark_reye(yreye.y-xreye.y,200,CV_8UC3,Scalar(0,0,0));
-			Mat landMark_mouth(ymouth.y-xmouth.y,ymouth.x-xmouth.x,CV_8UC3,Scalar(0,0,0));
-			Mat landMark_nose(ynose.y-xnose.y,200,CV_8UC3,Scalar(0,0,0));*/
-
-
 
 			//vector<> for point feature
 			//	
@@ -867,7 +771,6 @@ int getPredictFeature(Mat &training_mat,Mat &labels,int &predict_count)
 				currentDim++;
 			}
 
-			cout<<currentDim<<endl;
 
 			rectangle(frame, faces[i], Scalar( 255, 0, 0), 2,7, 0);
 
@@ -884,17 +787,51 @@ int getPredictFeature(Mat &training_mat,Mat &labels,int &predict_count)
 
 }
 
+void getImgList(string path,vector<string> &imglist)
+{
+	// get image list
+	string img_path=path;
+	string exten = "*";
+	string fileFolder = img_path+"\\*."+exten;
+	char fileName[2000];
+	struct  _finddata_t fileInfo;
+	long findResult = _findfirst(fileFolder.c_str(),&fileInfo);
+	if (findResult == -1)
+	{
+		_findclose(findResult);
+		return ;
+	}
+
+	do
+	{
+		sprintf(fileName,"%s\\%s",img_path.c_str(),fileInfo.name);
+		if (fileInfo.attrib==_A_ARCH)
+		{
+			imglist.push_back(fileName);
+		}
+
+	}while (!_findnext(findResult,&fileInfo));
+	_findclose(findResult); 
+}
+
 int main( int argc, char** argv ){ 
-
 	
-	Mat training_mat(SAMPLE_NUM,DATA_NUM,CV_32FC1);
-	Mat train_labels(SAMPLE_NUM,1,CV_32FC1);
+	string train_path = "male";
+	string test_path = "test_img";
+	vector<string> trainlist,testlist;
+	getImgList(train_path,trainlist);
+	getImgList(test_path,testlist);
 
-	Mat predict_mat(10,DATA_NUM,CV_32FC1);
-	Mat predict_labels(10,1,CV_32FC1);
-	int predict_count;
+	Mat training_mat(trainlist.size(),DATA_NUM,CV_32FC1);
+	Mat train_labels(trainlist.size(),1,CV_32FC1);
+
+	Mat predict_mat(testlist.size(),DATA_NUM,CV_32FC1);
+	Mat predict_labels(testlist.size(),1,CV_32FC1);
+
+	cout<<"training img : "<<trainlist.size()<<endl;
+	cout<<"test img : "<<testlist.size()<<endl;
+
 	printf("Loading Model!\nWait......\n");
-
 	string file_name = "shape_1.dat";
 	if (!LBF_Model_Load(file_name, model))
 	{
@@ -902,14 +839,13 @@ int main( int argc, char** argv ){
 		return 0;
 	}
 
-
-
-	int use_model_file=0;
+	cout<<"Now Training "<<endl;
+	int use_model_file=1; 
 
 	CvSVM SVM;
 	if (!use_model_file)
 	{
-		getTrainFeature(training_mat,train_labels);
+		getTrainFeature(training_mat,train_labels,trainlist);
 		CvSVMParams params;
 		params.svm_type = CvSVM::C_SVC;
 		params.kernel_type = CvSVM::LINEAR;
@@ -919,22 +855,18 @@ int main( int argc, char** argv ){
 		params.gamma=0.01;
 
 		SVM.train(training_mat,train_labels,Mat(),Mat(),params);
-		SVM.save("svm_model-new");
+		SVM.save("svm_model-smile");
 	}
 	else
 	{
-
-		SVM.load("svm_model-new");
+		SVM.load("svm_model-smile");
 	}
 	
 
-
-	
-
-	getPredictFeature(predict_mat,predict_labels,predict_count);
+	getPredictFeature(predict_mat,predict_labels,testlist);
 
 	Mat img_test(1,DATA_NUM,CV_32FC1);
-	for (int i = 0; i < predict_count; i++)
+	for (int i = 0; i < testlist.size(); i++)
 	{
 		predict_mat.row(i).copyTo(img_test.row(0));
 		cout<<i<<" : type: "<<predict_labels.at<float>(i,0)<<" Predict: "<<SVM.predict(img_test)<<endl;

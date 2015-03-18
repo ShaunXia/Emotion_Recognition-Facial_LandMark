@@ -25,6 +25,7 @@ int LBF_Model_Load(string file_name, LBF_model& models/*shape_predictor sp*/){
 		return OPEN_TEMPLATE_FILE_FAIL;
 	}
 
+
 	/////////////////////////////////////////--------initial_shape
 	int initial_shape_size = 0;
 	fread(&initial_shape_size, sizeof(int), 1, initial_shape_read);
