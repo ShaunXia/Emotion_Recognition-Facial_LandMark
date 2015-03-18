@@ -27,6 +27,7 @@ struct split_feature_load
 	float thresh;
 };
 
+
 struct regression_tree_load
 {
 	std::vector<split_feature_load> splits;
