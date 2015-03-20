@@ -48,24 +48,47 @@ void findPointsBorder(vector<Point> &points,Point &ul,Point &dr)
 	dr.x=max_point_x;
 	dr.y=max_point_y;
 }
-int getTrainFeature(Mat &training_mat,Mat &labels,vector<string> img_list)
+int getTrainFeature(vector<vector<double>> &vec_traindata,vector<int> &vec_trainlabel,vector<string> img_list)
 {
+	int showD=0;
+
 	int max_point_x,min_point_x,max_point_y,min_point_y;
+	int find_feature_sample_num=0;
+	int current_emotion_code=0;
+	
+	map <string, int>::iterator m1_Iter;
+	ofstream out("train_log.txt");
+	vector<string> notdetect_file;
+	map<string,int> emotion_2_number;
 
 	for (int i = 0; i < img_list.size(); i++)
 	{
-		if (img_list[i].find("happy")!=string::npos)
+		string ntp;
+		int loc;
+		loc=img_list[i].rfind(".");
+		if (loc!=string::npos)
 		{
-			labels.at<float>(i,0)=0;
-		}else if ((img_list[i].find("normal")!=string::npos))
-		{
-			labels.at<float>(i,0)=1;
-		}else if ((img_list[i].find("sad")!=string::npos))
-		{
-			labels.at<float>(i,0)=2;
-		}else
-			labels.at<float>(i,0)=0;
+			//labels.at<float>(i,0)=0;
+			ntp=img_list[i].substr(loc+1,img_list[i].length());
+			if (emotion_2_number.find(ntp)==emotion_2_number.end())
+			{
+				emotion_2_number.insert(pair<string,int>(ntp,current_emotion_code++));
+			}
+			
+		}
 	}
+
+	ofstream map_file("ecode_map.txt");
+	cout<<"Train string-code Map"<<endl;
+	for (m1_Iter = emotion_2_number.begin(); m1_Iter!=emotion_2_number.end(); m1_Iter++)
+	{
+		
+		cout<<"Emotion: "<<m1_Iter->first<<" | "<<" Code "<<m1_Iter->second<<endl;
+		out<<"Emotion: "<<m1_Iter->first<<" | "<<" Code "<<m1_Iter->second<<endl;
+		map_file<<m1_Iter->first<<" "<<m1_Iter->second<<endl;
+	}
+	map_file.close();
+	
 
 
 
@@ -86,18 +109,34 @@ int getTrainFeature(Mat &training_mat,Mat &labels,vector<string> img_list)
 
 	for (int k = 0; k < img_list.size(); k++)
 	{
+		cout<<k+1<<" / " <<img_list.size()<<"  --->  ";
+
+		vector<double> one_train_data;
 		fixed_point.clear();
-		Mat frame=imread(img_list[k]);
-		cout<<img_list[k]<<endl;
+		Mat tpframe=imread(img_list[k]);
+		Mat frame;
+		resize(tpframe,frame,Size(480,320),0,0,CV_INTER_LINEAR);
+
+		cout<<img_list[k];
 		if( !face_cascade.load( face_cascade_name ) ){  
 			printf("级联分类器错误，可能未找到文件，拷贝该文件到工程目录下！\n");
 			return -1;
 		}
 		std::vector<Rect> faces;
 		face_cascade.detectMultiScale( frame, faces, 1.15, 5, 0);
+		int detected=0;
 
+		if (faces.size()>1)
+		{
+			out<<"\n\n!!! Find Multiple Face in :"<<faces.size()<<"  "<<img_list[k]<<endl;
+			cout<<"\n\n!!! Find Multiple Face in :"<<faces.size()<<"  "<<img_list[k]<<endl;
+		}
 		for( int i = 0; i < faces.size(); i++ ){
-
+			if (faces.size()==1)
+			{
+				detected=1;
+				find_feature_sample_num++;
+			}
 			box[0] = faces[i].x;
 			box[1] = faces[i].y;
 			box[2] = (box[0] + faces[i].width);
@@ -108,9 +147,9 @@ int getTrainFeature(Mat &training_mat,Mat &labels,vector<string> img_list)
 			min_point_x=parts[0].x;
 			max_point_y=parts[0].y;
 			min_point_y=parts[0].y;
-
 			for (int j = 0; j < parts.size(); ++j)
 			{
+				
 				if (max_point_x<parts[j].x)
 					max_point_x=parts[j].x;
 				if (min_point_x>parts[j].x)
@@ -123,7 +162,7 @@ int getTrainFeature(Mat &training_mat,Mat &labels,vector<string> img_list)
 				ellipse( frame, center, Size( 1, 1), 0, 0, 0, Scalar( 255, 0, 255 ), 4, 8, 0); 
 				char c[3];
 				sprintf(c, "%d", j);
-				string words= c;  
+				string words= c;
 				putText( frame, words, center,CV_FONT_HERSHEY_COMPLEX, 0.3, Scalar(255, 0, 0)); 
 			}
 
@@ -144,7 +183,10 @@ int getTrainFeature(Mat &training_mat,Mat &labels,vector<string> img_list)
 				sprintf(c, "%d", j);
 				string words= c;  
 				putText( landMark_face, words, center, CV_FONT_HERSHEY_SIMPLEX, 0.5, Scalar(255, 0, 0)); 
-				imshow("landMark_face", landMark_face);
+				if (showD)
+				{
+					imshow("landMark_face", landMark_face);
+				}
 
 			}
 
@@ -199,7 +241,11 @@ int getTrainFeature(Mat &training_mat,Mat &labels,vector<string> img_list)
 				//fixed_point[j].y=center.y;
 				fixed_point.push_back(center);
 				ellipse( landMark_face_fixed, center, Size( 1, 1), 0, 0, 0, Scalar( 255, 255, 255 ), 4, 8, 0 ); 
-				imshow("landMark_face_fixed", landMark_face_fixed);
+				if (showD)
+				{
+					imshow("landMark_face_fixed", landMark_face_fixed);
+				}
+				
 			}
 
 			point_eyebrow.clear();
@@ -260,7 +306,8 @@ int getTrainFeature(Mat &training_mat,Mat &labels,vector<string> img_list)
 			{
 				Point center(point_eyebrow[j].x-xbrow.x,point_eyebrow[j].y-xbrow.y); 
 				ellipse( landMark_brow, center, Size( 1, 1), 0, 0, 0, Scalar( 255, 255, 255 ), 4, 8, 0 ); 
-				imshow("landMark_brow", landMark_brow);
+				if (showD)
+					imshow("landMark_brow", landMark_brow);
 			}
 
 			//Left eye
@@ -268,6 +315,7 @@ int getTrainFeature(Mat &training_mat,Mat &labels,vector<string> img_list)
 			{
 				Point center(point_leye[j].x-xleye.x,point_leye[j].y-xleye.y); 
 				ellipse( landMark_leye, center, Size( 1, 1), 0, 0, 0, Scalar( 255, 255, 255 ), 4, 8, 0 ); 
+				if (showD)
 				imshow("landMark_leye", landMark_leye);
 			}
 
@@ -276,6 +324,7 @@ int getTrainFeature(Mat &training_mat,Mat &labels,vector<string> img_list)
 			{
 				Point center(point_reye[j].x-xreye.x,point_reye[j].y-xreye.y); 
 				ellipse( landMark_reye, center, Size( 1, 1), 0, 0, 0, Scalar( 255, 255, 255 ), 4, 8, 0 ); 
+				if (showD)
 				imshow("landMark_reye", landMark_reye);
 			}
 
@@ -284,6 +333,7 @@ int getTrainFeature(Mat &training_mat,Mat &labels,vector<string> img_list)
 			{
 				Point center(point_mouth[j].x-xmouth.x,point_mouth[j].y-xmouth.y); 
 				ellipse( landMark_mouth, center, Size( 1, 1), 0, 0, 0, Scalar( 255, 255, 255 ), 4, 8, 0 ); 
+				if (showD)
 				imshow("landMark_mouth", landMark_mouth);
 			}
 
@@ -292,6 +342,7 @@ int getTrainFeature(Mat &training_mat,Mat &labels,vector<string> img_list)
 			{
 				Point center(point_nose[j].x-xnose.x,point_nose[j].y-xnose.y); 
 				ellipse( landMark_nose, center, Size( 1, 1), 0, 0, 0, Scalar( 255, 255, 255 ), 4, 8, 0 ); 
+				if (showD)
 				imshow("landMark_nose", landMark_nose);
 			}
 
@@ -358,113 +409,146 @@ int getTrainFeature(Mat &training_mat,Mat &labels,vector<string> img_list)
 			}
 
 
+			// all vec
+			vector<double> vec_all;
+			for (int j = 17; j < fixed_point.size()-1; j++)
+			{
+				for (int l = j+1; l < fixed_point.size(); l++)
+				{
+					double distance_x,distance_y,distance_h;
+					distance_x=fixed_point[j].x - fixed_point[l].x;
+					distance_y=fixed_point[j].y - fixed_point[l].y;
+					distance_h=sqrt(distance_x*distance_x+distance_y*distance_y);
+					one_train_data.push_back(distance_x);
+					one_train_data.push_back(distance_y);
+				}
+			}
+
+
+
+			//int totalDimension=vec_all.size();
 			//int totalDimension=
-			//	(point_mouth.size()+point_leye.size()+point_reye.size()+point_eyebrow.size()+point_nose.size())*2+
+				//(point_mouth.size()+point_leye.size()+point_reye.size()+point_eyebrow.size()+point_nose.size())*2+
 			//	vec_mouth.size()+vec_leye.size()+vec_reye.size()+vec_eyebrow.size();
 
-			int totalDimension=
-				(point_mouth.size()+point_leye.size()+point_reye.size()+point_eyebrow.size()+point_nose.size())*2+
-				vec_mouth.size()+vec_leye.size()+vec_reye.size()+vec_eyebrow.size();
 
-			cout<<totalDimension<<endl;
-			int currentDim=0;
-			
+			/*
 			// push into training Mat
 			for (int j = 0; j < point_eyebrow.size(); j++)
 			{
-				training_mat.at<float>(k,currentDim++)=point_eyebrow[j].x;
-				training_mat.at<float>(k,currentDim++)=point_eyebrow[j].y;
+				one_train_data.push_back(point_eyebrow[j].x);
+				one_train_data.push_back(point_eyebrow[j].y);
 			}
 
 			//Left eye
 			for (int j = 0; j < point_leye.size(); j++)
 			{
-				training_mat.at<float>(k,currentDim++)=point_leye[j].x;
-				training_mat.at<float>(k,currentDim++)=point_leye[j].y;
+				one_train_data.push_back(point_leye[j].x);
+				one_train_data.push_back(point_leye[j].y);
 			}
 
 			//right eye
 			for (int j = 0; j < point_reye.size(); j++)
 			{
-				training_mat.at<float>(k,currentDim++)=point_reye[j].x;
-				training_mat.at<float>(k,currentDim++)=point_reye[j].y;
+				one_train_data.push_back(point_reye[j].x);
+				one_train_data.push_back(point_reye[j].y);
 			}
 
 			// mouth
 			for (int j = 0; j < point_mouth.size(); j++)
 			{
-				training_mat.at<float>(k,currentDim++)=point_mouth[j].x;
-				training_mat.at<float>(k,currentDim++)=point_mouth[j].y;
+				one_train_data.push_back(point_mouth[j].x);
+				one_train_data.push_back(point_mouth[j].y);
 			}
 
 			//nose
 			for (int j = 0; j < point_nose.size(); j++)
 			{
-				training_mat.at<float>(k,currentDim++)=point_nose[j].x;
-				training_mat.at<float>(k,currentDim++)=point_nose[j].y;
+				one_train_data.push_back(point_nose[j].x);
+				one_train_data.push_back(point_nose[j].y);
 			}
 			
-
+			
 			// vector add into Mat
 
 			for (int j = 0; j < vec_mouth.size(); j++)
 			{
-				training_mat.at<float>(k,currentDim)=vec_mouth[j];
-				currentDim++;
+				one_train_data.push_back(vec_mouth[j]);
 			}
 			for (int j = 0; j < vec_eyebrow.size(); j++)
 			{
-				training_mat.at<float>(k,currentDim)=vec_eyebrow[j];
-				currentDim++;
+				one_train_data.push_back(vec_eyebrow[j]);
+				
 			}
 			for (int j = 0; j < vec_leye.size(); j++)
 			{
-				training_mat.at<float>(k,currentDim)=vec_leye[j];
-				currentDim++;
+				one_train_data.push_back(vec_leye[j]);
+
 			}
 			for (int j = 0; j < vec_reye.size(); j++)
 			{
-				training_mat.at<float>(k,currentDim)=vec_reye[j];
-				currentDim++;
+				one_train_data.push_back(vec_reye[j]);
 			}
 
+			*/
 			rectangle(frame, faces[i], Scalar( 255, 0, 0), 2,7, 0);
-
 		}
 
-		imshow("Train",frame);
-		waitKey(30);
+		if (detected)
+		{
+			vec_traindata.push_back(one_train_data);
+
+			map <string, int>::iterator emIt;
+			int loc=img_list[k].rfind(".");
+			string ntp;
+			int emotion_num=0;
+			if (loc!=string::npos)
+			{
+				ntp=img_list[k].substr(loc+1,img_list[k].length());
+				emIt = emotion_2_number.find(ntp);
+			}
+			vec_trainlabel.push_back(emIt->second);
+
+
+			cout<<" -- Fine"<<endl;
+		}
+		else
+		{
+			notdetect_file.push_back(img_list[k]);
+			cout<<" ## Detect None "<<endl;
+		}
+		cout<<"\nFind: "<<find_feature_sample_num<<endl;
+		cout<<"Label size: "<<vec_trainlabel.size()<<endl;
+		if (showD)
+		{
+			imshow("Train",frame);
+			waitKey(0);
+		}
 
 	}
-
-	ofstream out("out.txt");
-	out<<labels<<endl;
-	out<<training_mat<<endl;
+	out<<find_feature_sample_num<<"/"<<img_list.size()<<endl;
+	out<<"No Face Img:"<<endl;
+	for (int i = 0; i < notdetect_file.size(); i++)
+	{
+		out<<i<<" "<<notdetect_file[i]<<endl;
+	}
 	out.close();
 
 }
 
-int getPredictFeature(Mat &training_mat,Mat &labels,vector<string> &img_list)
+int doPredict(vector<string> &img_list,CvSVM &SVM,map<string,int> &emotion_2_number)
 {
 
-	
-	
+	int find_feature_sample_num=0;
+				int correct_num=0;
+	ofstream out("predict_log.txt");
+
+	map<int,string> number_2_emotion;
+
+	map <string, int>::iterator m1_Iter;
+	int current_emotion_code;
 	int max_point_x,min_point_x,max_point_y,min_point_y;
 
-	for (int i = 0; i < img_list.size(); i++)
-	{
-		if (img_list[i].find("happy")!=string::npos)
-		{
-			labels.at<float>(i,0)=0;
-		}else if ((img_list[i].find("normal")!=string::npos))
-		{
-			labels.at<float>(i,0)=1;
-		}else if ((img_list[i].find("sad")!=string::npos))
-		{
-			labels.at<float>(i,0)=2;
-		}else
-			labels.at<float>(i,0)=0;
-	}
 
 	double box[4];
 	vector<point<double>> parts;
@@ -477,17 +561,35 @@ int getPredictFeature(Mat &training_mat,Mat &labels,vector<string> &img_list)
 
 	for (int k = 0; k < img_list.size(); k++)
 	{
+		cout<<k+1<<" / " <<img_list.size()<<"  --->  ";
 		fixed_point.clear();
 		Mat frame=imread(img_list[k]);
-		cout<<img_list[k]<<endl;
+		cout<<img_list[k]<<"  ";
 		if( !face_cascade.load( face_cascade_name ) ){  
 			printf("级联分类器错误，可能未找到文件，拷贝该文件到工程目录下！\n");
 			return -1;
 		}
 		std::vector<Rect> faces;
 		face_cascade.detectMultiScale( frame, faces, 1.15, 5, 0);
+		int detected=0;
 
 		for( int i = 0; i < faces.size(); i++ ){
+			detected=1;
+			find_feature_sample_num++;
+
+			current_emotion_code=0;
+
+			map <string, int>::iterator emIt;
+			int loc=img_list[k].rfind(".");
+			string ntp;
+			int emotion_num=0;
+			if (loc!=string::npos)
+			{
+				ntp=img_list[k].substr(loc+1,img_list[k].length());
+				emIt = emotion_2_number.find(ntp);
+			}
+
+			current_emotion_code = emIt->second;
 
 			box[0] = faces[i].x;
 			box[1] = faces[i].y;
@@ -699,92 +801,124 @@ int getPredictFeature(Mat &training_mat,Mat &labels,vector<string> &img_list)
 				}
 			}
 
+			
+			// all vec
+			vector<double> vec_all;
+			for (int j = 17; j < fixed_point.size()-1; j++)
+			{
+				for (int l = j+1; l < fixed_point.size(); l++)
+				{
+					double distance_x,distance_y,distance_h;
+					distance_x=fixed_point[j].x - fixed_point[l].x;
+					distance_y=fixed_point[j].y - fixed_point[l].y;
+					distance_h=sqrt(distance_x*distance_x+distance_y*distance_y);
+					vec_all.push_back(distance_x);
+					vec_all.push_back(distance_y);
+				}
+			}
 
+
+
+			int totalDimension=vec_all.size();
 			//int totalDimension=
-			//	(point_mouth.size()+point_leye.size()+point_reye.size()+point_eyebrow.size()+point_nose.size())*2+
+				//(point_mouth.size()+point_leye.size()+point_reye.size()+point_eyebrow.size()+point_nose.size())*2+
 			//	vec_mouth.size()+vec_leye.size()+vec_reye.size()+vec_eyebrow.size();
 
-			int totalDimension=
-				(point_mouth.size()+point_leye.size()+point_reye.size()+point_eyebrow.size()+point_nose.size())*2+
-				vec_mouth.size()+vec_leye.size()+vec_reye.size()+vec_eyebrow.size();
-
-			cout<<totalDimension<<endl;
 			int currentDim=0;
 
-			
+			Mat current_test_mat(1,totalDimension,CV_32FC1);
+			for (int j = 0; j < totalDimension; j++)
+			{
+				current_test_mat.at<float>(0,currentDim)=vec_all[j];
+				currentDim++;
+			}
+
+			/*
 			// push into training Mat
 			for (int j = 0; j < point_eyebrow.size(); j++)
 			{
-				training_mat.at<float>(k,currentDim++)=point_eyebrow[j].x;
-				training_mat.at<float>(k,currentDim++)=point_eyebrow[j].y;
+				current_test_mat.at<float>(0,currentDim++)=point_eyebrow[j].x;
+				current_test_mat.at<float>(0,currentDim++)=point_eyebrow[j].y;
 			}
 
 			//Left eye
 			for (int j = 0; j < point_leye.size(); j++)
 			{
-				training_mat.at<float>(k,currentDim++)=point_leye[j].x;
-				training_mat.at<float>(k,currentDim++)=point_leye[j].y;
+				current_test_mat.at<float>(0,currentDim++)=point_leye[j].x;
+				current_test_mat.at<float>(0,currentDim++)=point_leye[j].y;
 			}
 
 			//right eye
 			for (int j = 0; j < point_reye.size(); j++)
 			{
-				training_mat.at<float>(k,currentDim++)=point_reye[j].x;
-				training_mat.at<float>(k,currentDim++)=point_reye[j].y;
+				current_test_mat.at<float>(0,currentDim++)=point_reye[j].x;
+				current_test_mat.at<float>(0,currentDim++)=point_reye[j].y;
 			}
 
 			// mouth
 			for (int j = 0; j < point_mouth.size(); j++)
 			{
-				training_mat.at<float>(k,currentDim++)=point_mouth[j].x;
-				training_mat.at<float>(k,currentDim++)=point_mouth[j].y;
+				current_test_mat.at<float>(0,currentDim++)=point_mouth[j].x;
+				current_test_mat.at<float>(0,currentDim++)=point_mouth[j].y;
 			}
 
 			//nose
 			for (int j = 0; j < point_nose.size(); j++)
 			{
-				training_mat.at<float>(k,currentDim++)=point_nose[j].x;
-				training_mat.at<float>(k,currentDim++)=point_nose[j].y;
+				current_test_mat.at<float>(0,currentDim++)=point_nose[j].x;
+				current_test_mat.at<float>(0,currentDim++)=point_nose[j].y;
 			}
+			
 			
 
 			// vector add into Mat
 
 			for (int j = 0; j < vec_mouth.size(); j++)
 			{
-				training_mat.at<float>(k,currentDim)=vec_mouth[j];
+				current_test_mat.at<float>(0,currentDim)=vec_mouth[j];
 				currentDim++;
 			}
 			for (int j = 0; j < vec_eyebrow.size(); j++)
 			{
-				training_mat.at<float>(k,currentDim)=vec_eyebrow[j];
+				current_test_mat.at<float>(0,currentDim)=vec_eyebrow[j];
 				currentDim++;
 			}
 			for (int j = 0; j < vec_leye.size(); j++)
 			{
-				training_mat.at<float>(k,currentDim)=vec_leye[j];
+				current_test_mat.at<float>(0,currentDim)=vec_leye[j];
 				currentDim++;
 			}
 			for (int j = 0; j < vec_reye.size(); j++)
 			{
-				training_mat.at<float>(k,currentDim)=vec_reye[j];
+				current_test_mat.at<float>(0,currentDim)=vec_reye[j];
 				currentDim++;
 			}
-
+			*/
 
 			rectangle(frame, faces[i], Scalar( 255, 0, 0), 2,7, 0);
+			int svm_result = SVM.predict(current_test_mat);
 
+			cout<<" Label : "<<current_emotion_code<<"  Predict "<<svm_result;
+			if (current_emotion_code==svm_result)
+			{
+				correct_num++;
+				cout<<" -- Correct!"<<endl;
+			}
+			else
+				cout<<" -- Incorrect!"<<endl;
+			out<<img_list[k]<<endl<<"Label : "<<current_emotion_code<<" Predict"<<SVM.predict(current_test_mat)<<endl;
 		}
-
+		if (!detected)
+		{
+			cout<<"  ## Detect None "<<endl;
+			out<<img_list[k]<<"  ## Detect None  "<<endl;
+		}
 		imshow("Predict",frame);
 		waitKey(30);
-
 	}
-	ofstream out("out_prd.txt");
-	out<<labels<<endl;
-	out<<training_mat<<endl;
+	out<<find_feature_sample_num<<"/"<<img_list.size()<<endl;
 	out.close();
-
+	cout<<"Correct / All :"<< correct_num<<" / "<<find_feature_sample_num<<" | "<< correct_num*1.0/find_feature_sample_num<<endl;
 }
 
 void getImgList(string path,vector<string> &imglist)
@@ -816,46 +950,65 @@ void getImgList(string path,vector<string> &imglist)
 
 int main( int argc, char** argv ){ 
 	
-	string train_path = "male";
-	string test_path = "test_img";
+	string train_path = "yaleface";
+	string test_path = "vltest";
+
 	vector<string> trainlist,testlist;
 	getImgList(train_path,trainlist);
 	getImgList(test_path,testlist);
 
-	Mat training_mat(trainlist.size(),DATA_NUM,CV_32FC1);
-	Mat train_labels(trainlist.size(),1,CV_32FC1);
-
-	Mat predict_mat(testlist.size(),DATA_NUM,CV_32FC1);
-	Mat predict_labels(testlist.size(),1,CV_32FC1);
+	map<string,int> emotion_2_number;
+	vector<vector<double>> vec_traindata;
+	vector<int> vec_trainlabel;
 
 	cout<<"training img : "<<trainlist.size()<<endl;
 	cout<<"test img : "<<testlist.size()<<endl;
 
 	printf("Loading Model!\nWait......\n");
 	string file_name = "shape_1.dat";
+	
 	if (!LBF_Model_Load(file_name, model))
 	{
 		cout<<"Can not load the file!"<<endl;
 		return 0;
 	}
 
-	cout<<"Now Training "<<endl;
+	cout<<"==============Now Loading Img Feature ============="<<endl;
 	int use_model_file=1; 
 
 	CvSVM SVM;
 	if (!use_model_file)
 	{
-		getTrainFeature(training_mat,train_labels,trainlist);
+		getTrainFeature(vec_traindata,vec_trainlabel,trainlist);
+		Mat training_mat(vec_trainlabel.size(),vec_traindata[0].size(),CV_32FC1);
+		Mat train_label(vec_trainlabel.size(),1,CV_32FC1);
+		cout<<"\n---------Img Feature Load Finished -----------"<<endl;
+		cout<<"Data Dimension : "<<vec_traindata[0].size()<<endl;
+		cout<<"Find Feature Data : "<<vec_trainlabel.size()<<endl<<endl;
+		for (int i = 0; i < vec_trainlabel.size(); i++)
+		{
+			train_label.at<float>(i,0) = vec_trainlabel[i];
+		}
+
+		for (int i = 0; i < vec_traindata.size(); i++)
+		{
+			Mat tp(vec_traindata[i]);
+			tp=tp.t();
+			tp.copyTo(training_mat.row(i));
+		}
+
+		cout<<"\n==============Now Loading Img Feature ============="<<endl;
 		CvSVMParams params;
 		params.svm_type = CvSVM::C_SVC;
 		params.kernel_type = CvSVM::LINEAR;
 		params.term_crit = cvTermCriteria(CV_TERMCRIT_ITER,100,5e-3);
-		params.C=10;
+		params.C=50;
 		params.p=5e-3;
 		params.gamma=0.01;
 
-		SVM.train(training_mat,train_labels,Mat(),Mat(),params);
+		SVM.train(training_mat,train_label,Mat(),Mat(),params);
 		SVM.save("svm_model-smile");
+		cout<<"\n---------Training Finished & File Saved -----------"<<endl;
 	}
 	else
 	{
@@ -863,14 +1016,26 @@ int main( int argc, char** argv ){
 	}
 	
 
-	getPredictFeature(predict_mat,predict_labels,testlist);
-
-	Mat img_test(1,DATA_NUM,CV_32FC1);
-	for (int i = 0; i < testlist.size(); i++)
+	cout<<"Load Map String - Code "<<endl;
+	ifstream map_file("ecode_map.txt");
+	while (!map_file.eof())
 	{
-		predict_mat.row(i).copyTo(img_test.row(0));
-		cout<<i<<" : type: "<<predict_labels.at<float>(i,0)<<" Predict: "<<SVM.predict(img_test)<<endl;
+		int ecode;
+		string estring;
+		map_file>>estring>>ecode;
+		emotion_2_number.insert(pair<string,int>(estring,ecode));
 	}
+	map_file.close();
+
+	map <string, int>::iterator m1_Iter;
+	for (m1_Iter = emotion_2_number.begin(); m1_Iter!=emotion_2_number.end(); m1_Iter++)
+	{
+		
+		cout<<"Emotion: "<<m1_Iter->first<<" | "<<" Code "<<m1_Iter->second<<endl;
+	}
+
+	cout<<"----start predict--------"<<endl;
+	doPredict(testlist,SVM,emotion_2_number);
 	
 
 	return 0;
