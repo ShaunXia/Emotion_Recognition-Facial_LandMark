@@ -1,6 +1,6 @@
 # Emotion_Recognition-Facial_LandMark
 
 
-Merge To:
+Merge into:
 
 https://github.com/ShaunXia/Emotion_Recognition
